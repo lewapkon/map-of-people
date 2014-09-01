@@ -53,8 +53,8 @@ svg.append('rect')
 
 var g = svg.append('g')
 
-d3.json('../map.json', function(mapError, mapData) {
-  d3.csv('../data.csv', function(panthError, panthData) {
+d3.json('map.json', function(mapError, mapData) {
+  d3.csv('data.csv', function(panthError, panthData) {
     init(mapData, panthData);
   });
 });
