@@ -1,8 +1,10 @@
 'use strict';
 
-var m_width = $('#map').width(),
+var m_width = d3.select('#map').property('width'),
+    svg_width = 1200,
     width = 938,
-    height = 500;
+    height = 500,
+    country;
 
 var categories = [];
 
@@ -21,46 +23,27 @@ var svg = d3.select('#map').append('svg')
     .attr('height', m_width * height / width);
 */
 var svg = d3.select('#map').append('svg')
-    .attr('width', width)
+    .attr('width', svg_width)
     .attr('height', height);
 
 var tooltip = d3.select('#tooltip');
-
-var fisheye = d3.fisheye.circular()
-    .radius(200)
-    .distortion(2);
 
 svg.append('rect')
     .attr('class', 'background')
     .attr('width', width)
     .attr('height', height);
-    /*.on('mousemove', function() {
-      fisheye.focus(d3.mouse(this));
-
-      svg.selectAll('.person')
-          .each(function(d) { d.fisheye = fisheye(d); })
-          .attr('cx', function(d) { return d.fisheye.x; })
-          .attr('cy', function(d) { return d.fisheye.y; })
-          .attr('r', function(d) { return d.fisheye.z * 4.5; });
-      /*
-      link.attr('x1', function(d) { return d.source.fisheye.x; })
-          .attr('y1', function(d) { return d.source.fisheye.y; })
-          .attr('x2', function(d) { return d.target.fisheye.x; })
-          .attr('y2', function(d) { return d.target.fisheye.y; });
-      
-    });*/
-    //.on('click', country_clicked)
 
 var g = svg.append('g')
 
 d3.json('map.json', function(mapError, mapData) {
   d3.csv('data.csv', function(panthError, panthData) {
-    init(mapData, panthData);
+    d3.json('domains.json', function(categoriesError, categoriesData) {
+      init(mapData, panthData, categoriesData);
+    });
   });
 });
 
-var init = function(mapData, panthData) {
-  getCategoriesFromData(panthData);
+var init = function(mapData, panthData, categoriesData) {
   g.append('g')
     .attr('id', 'countries')
     .selectAll('path')
@@ -68,56 +51,92 @@ var init = function(mapData, panthData) {
     .enter()
     .append('path')
     .attr('id', function(d) { return d.id; })
-    .attr('d', path);
+    .attr('d', path)
     //.on('click', country_clicked);
-  // var element = categories[Math.floor(Math.random() * categories.length)]
-  // panthData.filter(function(d) { return d.occupation === element; })
   refresh(panthData);
+  optionsMenu(panthData);
+  categoriesMenu(categoriesData, panthData);
 }
 
-var uniqueValues = function(data) {
-  var dict = {};
-  var result = [];
-  data.forEach(function(element, index, array) {
-    if (!(element in dict)) {
-      result.push(element);
-      dict[element] = true;
+var categoriesMenu = function(categoriesData, panthData) {
+  var domains = svg.selectAll('.domain')
+    .data(categoriesData, function(d) { return d.name; });
+  
+  var domains_g = domains.enter()
+    .append('g')
+      .attr('class', 'domain')
+      .attr('transform', function(d, i) {
+        return 'translate(985,' + (130 + 20 * i) + ')';
+      });
+  domains_g.append('rect')
+    .attr('x', -30)
+    .attr('y', -15)
+    .attr('width', 180)
+    .attr('height', 20)
+    .attr('fill', 'white');
+
+  domains_g.append('text')
+    .attr('class', 'domain_text')
+    .attr('x', 15)
+    .text(function(d) { return d.name.capitalize(); });
+
+  domains_g.append('text')
+    .attr('class', 'domain_counter')
+    .attr('text-anchor', 'end')
+    .text(function(d) { return d.number; });
+
+  domains.on('click', function(d) {
+    selectDomain(categoriesData, panthData, d);
+  });
+
+  selectDomain(categoriesData, panthData, categoriesData[0]);
+}
+
+var selectDomain = function(categoriesData, panthData, selected) {
+  var domains = svg.selectAll('.domain');
+
+  // Change style of selected item.
+  domains.classed('selected', function(d) {
+    return d === selected;
+  });
+
+  // Refresh map with all points from the domain.
+  var data;
+  if (selected.name === 'All') {
+    data = panthData;
+  } else {
+    data = panthData.filter(function(d) { return d.domain === selected.name; });
+  }
+  refresh(data);
+
+  // Refresh occupations list
+  var options = d3.select('#occupation')
+        .selectAll('.occupation').data(selected.occupations, function(d) { return d.name; });
+
+  options.enter()
+    .append('option')
+      .attr('class', 'occupation')
+      .property('value', function (d) { return d.name; })
+      .text(function(d) { return d.name.capitalize() + ' (' + d.number + ')' });
+
+  options.exit()
+    .remove();
+}
+
+// Init occupation select menu
+var optionsMenu = function (panthData) {
+  var select = d3.select('#occupation').on('change', function() {
+    var choice = select.property('value').toUpperCase();
+    if (choice !== 'CHOOSE OCCUPATION') {
+      refresh(panthData.filter(function(d) { return d.occupation === choice; }));
+    } else {
+      refresh(panthData);
     }
   });
-  return result;
 }
 
 String.prototype.capitalize = function() {
   return this.charAt(0).toUpperCase() + this.substring(1).toLowerCase();
-}
-
-var getCategoriesFromData = function(data) {
-  var domains = [];
-  var occupations = [];
-  data.forEach(function(element, index, array) {
-    domains.push(element.domain.capitalize());
-    occupations.push(element.occupation.capitalize());
-  });
-  domains = uniqueValues(domains).sort();
-  occupations = uniqueValues(occupations).sort();
-  /*
-  var domain = $('#domain ul');
-  domains.forEach(function(element, index, array) {
-    domain.append('<li>' + element + '</li>');
-  });
-  */
-  var occupation = $('#occupation');
-  occupations.forEach(function(element, index, array) { 
-    occupation.append('<option>' + element + '</option>')
-  });
-  occupation.change(function() {
-    var choice = occupation.val().toUpperCase();
-    if (choice !== 'CHOOSE CATEGORY') {
-      refresh(data.filter(function(d) { return d.occupation === choice; }));
-    } else {
-      refresh(data);
-    }
-  });
 }
 
 var r = 2;
@@ -139,23 +158,25 @@ var refresh = function(data) {
       .attr('cx', function(d) { return projection([d.longitude, d.latitude])[0]; })
       .attr('cy', function(d) { return projection([d.longitude, d.latitude])[1]; })
       .attr('r', r)
+      .attr('fill', function(d, i) { return colors(i); })
+      .attr('opacity', 0)
       .on('mouseover', function(d) {
         var pos = projection([d.longitude, d.latitude]);
         tooltipShow([d.name, d.birthyear, d.occupation.capitalize()].join('<br>'), pos[0] - 16 - r, pos[1] + 16 + r);
       })
       .on('mouseout', function(d) {
         tooltipOut();
-      });
-//.attr('stroke', );
-
-  people
-    .attr('fill', function(d, i) { return colors(i); });
-    
+      })
+      .transition().duration(800)
+      .attr('opacity', 1);
+  
   people.exit()
+    .transition().duration(800)
+    .style('opacity', 0)
     .remove();
+
 }
 
-/*
 var zoom = function(xyz) {
   g.transition()
     .duration(750)
@@ -163,6 +184,16 @@ var zoom = function(xyz) {
     .selectAll(['#countries'])
     .style('stroke-width', 1.0 / xyz[2] + 'px')
     .attr('d', path.pointRadius(20.0 / xyz[2]));
+
+  svg.selectAll('.person').enter()
+    .duration(750)
+    .attr('transform', 'translate(' + projection.translate() + ')scale(' + xyz[2] + ')translate(-' + xyz[0] + ',-' + xyz[1] + ')')
+    .selectAll(['#countries'])
+    .attr('stroke-width', 1.0 / xyz[2] + 'px')
+    .attr('d', path.pointRadius(20.0 / xyz[2]));
+  //svg.selectAll('.person')
+  //  .attr('cx', function(d) { return projection([d.longitude, d.latitude])[0]; })
+  //  .attr('cy', function(d) { return projection([d.longitude, d.latitude])[1]; });
 }
 
 var get_xyz = function(d) {
@@ -188,7 +219,7 @@ var country_clicked = function(d) {
     zoom([width / 2, height / 1.5, 1])
   }
 }
-*/
+
 
 var tooltipShow = function(html, x, y) {
   tooltip
