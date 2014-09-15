@@ -2,9 +2,10 @@
 
 var m_width = d3.select('#map').property('width'),
     svg_width = 1200,
-    width = 938,
+    width = 938, // width of map
     height = 500,
-    country;
+    country, // country zoomed in at the moment
+    r = 2; // radius of points
 
 var categories = [];
 
@@ -111,7 +112,8 @@ var selectDomain = function(categoriesData, panthData, selected) {
 
   // Refresh occupations list
   var options = d3.select('#occupation')
-        .selectAll('.occupation').data(selected.occupations, function(d) { return d.name; });
+        .selectAll('.occupation')
+        .data(selected.occupations, function(d) { return d.name; });
 
   options.enter()
     .append('option')
@@ -139,8 +141,6 @@ String.prototype.capitalize = function() {
   return this.charAt(0).toUpperCase() + this.substring(1).toLowerCase();
 }
 
-var r = 2;
-
 var refresh = function(data) {
   data.sort(function(a, b) {
     return +a.birthyear - +b.birthyear;
@@ -162,7 +162,11 @@ var refresh = function(data) {
       .attr('opacity', 0)
       .on('mouseover', function(d) {
         var pos = projection([d.longitude, d.latitude]);
-        tooltipShow([d.name, d.birthyear, d.occupation.capitalize()].join('<br>'), pos[0] - 16 - r, pos[1] + 16 + r);
+        tooltipShow([
+          d.name, 
+          d.birthyear, 
+          d.occupation.capitalize()
+        ].join('<br>'), pos[0] - 16 - r, pos[1] + 16 + r);
       })
       .on('mouseout', function(d) {
         tooltipOut();
@@ -176,6 +180,10 @@ var refresh = function(data) {
     .remove();
 
 }
+
+// ================
+//     Zooming
+// ================
 
 var zoom = function(xyz) {
   g.transition()
@@ -220,6 +228,9 @@ var country_clicked = function(d) {
   }
 }
 
+// ================
+//     Tooltips
+// ================
 
 var tooltipShow = function(html, x, y) {
   tooltip
