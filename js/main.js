@@ -67,7 +67,7 @@ var categoriesMenu = function(categoriesData, panthData) {
     .append('g')
       .attr('class', 'domain')
       .attr('transform', function(d, i) {
-        return 'translate(985,' + (130 + 20 * i) + ')';
+        return 'translate(985,' + (90 + 20 * i) + ')';
       });
   domains_g.append('rect')
     .attr('x', -30)
@@ -111,7 +111,7 @@ var selectDomain = function(categoriesData, panthData, selected) {
   refresh(data);
 
   // Refresh occupations list
-  var options = d3.select('#occupation')
+  var options = d3.select('#occupation-select')
         .selectAll('.occupation')
         .data(selected.occupations, function(d) { return d.name; });
 
@@ -127,7 +127,7 @@ var selectDomain = function(categoriesData, panthData, selected) {
 
 // Init occupation select menu
 var optionsMenu = function (panthData) {
-  var select = d3.select('#occupation').on('change', function() {
+  var select = d3.select('#occupation-select').on('change', function() {
     var choice = select.property('value').toUpperCase();
     if (choice !== 'CHOOSE OCCUPATION') {
       refresh(panthData.filter(function(d) { return d.occupation === choice; }));

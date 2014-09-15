@@ -46,10 +46,19 @@ pre.prettyprint {
 .domain.selected {
 	fill: #C63628;
 }
-#occupation {
+#domains {
 	position: absolute;
-	top: 320px;
+	top: 50px;
 	left: 950px;
+	font-family: "Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+	font-size: 13px;
+}
+#occupation-div {
+	position: absolute;
+	top: 280px;
+	left: 950px;
+	font-family: "Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+	font-size: 13px;
 }
 #tooltip {
 	position: absolute;
